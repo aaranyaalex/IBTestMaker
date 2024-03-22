@@ -28,7 +28,7 @@ class Parser:
     
     def __getitem__(self, key):
         # for later implementation
-        return None
+        pass
 
     def parse_folder(self) -> None:
         if not self.folder:
