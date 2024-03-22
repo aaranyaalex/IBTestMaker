@@ -27,8 +27,9 @@ class Parser:
         self.topic += ", " + new_parser.topic   
     
     def __getitem__(self, key):
-        # for later implementation
-        pass
+        # Returns all the questions we have by their mark
+        marks = [q[0] for q in self.questionBank[key]]
+        return marks
 
     def parse_folder(self) -> None:
         if not self.folder:
