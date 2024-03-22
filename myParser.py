@@ -1,17 +1,34 @@
 import PyPDF2
 import re
 import pathlib
+from typing import Dict, Optional
 
 class Parser:
+    """
+    Takes pdf files of questions from Christos Nikolaidis' website, that I use often for teaching IB students
+    Separates the questions by if they require a graphing calculator or not, and then stores by markscheme
+    """
 
-    def __init__(self, folder_path) -> None:
+    def __init__(self, folder_path: str, topic: Optional[str]) -> None:
         
-        if pathlib.is_dir(folder_path):
+        if pathlib.Path(folder_path).is_dir():
             self.folder = folder_path 
         else:
+            self.folder = None
             self.file = folder_path
 
         self.questionBank = {"GDC":[], "nonGDC":[]}
+        self.topic = topic
+
+    def __add__(self, new_parser) -> None:
+
+        self.questionBank["GDC"].extend(new_parser.questionBank["GDC"])
+        self.questionBank["nonGDC"].extend(new_parser.questionBank["nonGDC"]) 
+        self.topic += ", " + new_parser.topic   
+    
+    def __getitem__(self, key):
+        # for later implementation
+        return None
 
     def parse_folder(self) -> None:
         if not self.folder:
@@ -20,24 +37,12 @@ class Parser:
             for f in pathlib.Path(self.folder_path).iterdir():
                 if f.is_file():
                     self.parse_questions(f)
-    
-    def concat_banks(self, new_bank) -> None:
-        self.questionBank["GDC"].extend(new_bank["GDC"])
-        self.questionBank["nonGDC"].extend(new_bank["nonGDC"])
 
-    def parse_questions(self, file_path) -> None:
+    def parse_questions(self, file_path: str) -> None:
         # Open the PDF file in binary mode
         with open(file_path, 'rb') as file:
             # Create a PDF reader object
             pdf_reader = PyPDF2.PdfReader(file)
-
-            # Initialize an empty dictionary to store sections
-            sections = {}
-
-            # Initialize variables to track current section number and text
-            current_section = None
-            current_text = ''
-
             # Iterate through each page
             for page_number in range(len(pdf_reader.pages)):
                 # Extract text from the page
@@ -47,26 +52,15 @@ class Parser:
                 for line in lines:
                     if re.search(r'\[without GDC\]', line): # see if its a nonGDC question
                         qmark = int(re.findall(r'\[Maximum mark: (\d+)\]', line)[0]) # get the markscheme
-                        qtext = line[re.search(r'\[Maximum mark: (\d+)\] + \[without GDC\]', line).span()[-1] :].strip() # get the question text
+                        qtext = line[re.search(r'\[without GDC\]', line).span()[-1] :].strip() # get the question text
                         self.questionBank['nonGDC'].append((qmark, qtext)) # add to dict
                     
                     if re.search(r'\[with GDC\]', line): # see if its a GDC question
                         qmark = int(re.findall(r'\[Maximum mark: (\d+)\]', line)[0]) # get the markscheme
-                        qtext = line[re.search(r'\[Maximum mark: (\d+)\] + \[without GDC\]', line).span()[-1] :].strip() # get the question text
+                        qtext = line[re.search(r'\[with GDC\]', line).span()[-1] :].strip() # get the question text
                         self.questionBank['GDC'].append((qmark, qtext)) # add to dict
 
-               # if section_match:
-                    # If a new section is found, save the previous section (if any)
-                    if current_section is not None:
-                        sections[current_section] = current_text.strip()
-                    
-                    # Update current section number and reset current text
-                  #  current_section = section_match.group(1)
-                    current_text = ''
-                
-                # Append text from this page to the current section
-                current_text += page_text
-
-            # Save the last section
-            if current_section is not None:
-                sections[current_section] = current_text.strip()
+if __name__ == "__main__":
+    filepath = "/Users/aaranya/Downloads/ArithmeticSequences.pdf"
+    trying = Parser(filepath, "Arithmetic Sequences")
+    trying.parse_folder()
